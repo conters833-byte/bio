@@ -1675,6 +1675,8 @@
                 obj.followDelaySeconds = 0;
                 obj.posHistory = [];
                 obj._idleToggleIdx = 0;
+                obj.facing = 'right';
+                obj.element.style.transform = 'scaleX(1)';
                 const bubble = obj.element.querySelector('.typewriter-bubble');
                 if(bubble) bubble.remove();
             });
@@ -1828,11 +1830,15 @@
                             left += (4 * speedMultiplier); 
                             isMovingNow = true; 
                             movingRightNow = true;
+                            obj.facing = 'right';
+                            obj.element.style.transform = 'scaleX(1)';
                         }
                         if(canMoveLeft && (keys['a'] || keys['ش'])) { 
                             left -= (4 * speedMultiplier); 
                             isMovingNow = true; 
                             movingLeftNow = true;
+                            obj.facing = 'left';
+                            obj.element.style.transform = 'scaleX(-1)';
                         }
                     }
 
@@ -2629,8 +2635,8 @@ function startLoop() {
       var isMovingNow = false, movingRightNow = false, movingLeftNow = false;
 
       if (od.canMove) {
-        if (canMoveRight && (keys['d'] || keys['د'])) { left += (4 * speedMultiplier); isMovingNow = true; movingRightNow = true; }
-        if (canMoveLeft && (keys['a'] || keys['ش'])) { left -= (4 * speedMultiplier); isMovingNow = true; movingLeftNow = true; }
+        if (canMoveRight && (keys['d'] || keys['د'])) { left += (4 * speedMultiplier); isMovingNow = true; movingRightNow = true; ro.element.style.transform = 'scaleX(1)'; }
+        if (canMoveLeft && (keys['a'] || keys['ش'])) { left -= (4 * speedMultiplier); isMovingNow = true; movingLeftNow = true; ro.element.style.transform = 'scaleX(-1)'; }
       }
 
       if (od.category === 'enemy') {
