@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Error Engine - Ultimate Edition (Ali_dev_soko)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root {
             --bg-color: #0b0b0f; --panel-bg: #12121c; --neon-blue: #00f2fe;
@@ -1222,8 +1223,10 @@
                 blockData.idleFrameIdx1 = 0;
                 blockData.idleFrameIdx2 = 0;
             } else if(type === 'move_anim') {
-                blockData.moveRightFrameIdx = 0;
-                blockData.moveLeftFrameIdx = 0;
+                blockData.moveRightFrameIdx1 = 0;
+                blockData.moveRightFrameIdx2 = 0;
+                blockData.moveLeftFrameIdx1 = 0;
+                blockData.moveLeftFrameIdx2 = 0;
             } else if(type === 'jump_anim') {
                 blockData.jumpUpFrameIdx = 0;
                 blockData.jumpDownFrameIdx = 0;
@@ -1291,9 +1294,11 @@
                     div.innerHTML = `<span>🧍‍♂️ عند الوقوف بدّل بين ${idleSelect1} و ${idleSelect2}</span> <button class="delete-obj-btn" onclick="removeBlock(${idx})">✕</button>`;
                 } else if(block.type === 'move_anim') {
                     div.style.background = 'var(--scratch-sound)'; div.style.color = 'white';
-                    const rightSelect = createFrameIndexSelect(obj, idx, 'moveRightFrameIdx', block.moveRightFrameIdx);
-                    const leftSelect = createFrameIndexSelect(obj, idx, 'moveLeftFrameIdx', block.moveLeftFrameIdx);
-                    div.innerHTML = `<span>🚶 عند D غير إلى ${rightSelect} — عند A غير إلى ${leftSelect}</span> <button class="delete-obj-btn" onclick="removeBlock(${idx})">✕</button>`;
+                    const rightSelect1 = createFrameIndexSelect(obj, idx, 'moveRightFrameIdx1', block.moveRightFrameIdx1);
+                    const rightSelect2 = createFrameIndexSelect(obj, idx, 'moveRightFrameIdx2', block.moveRightFrameIdx2);
+                    const leftSelect1 = createFrameIndexSelect(obj, idx, 'moveLeftFrameIdx1', block.moveLeftFrameIdx1);
+                    const leftSelect2 = createFrameIndexSelect(obj, idx, 'moveLeftFrameIdx2', block.moveLeftFrameIdx2);
+                    div.innerHTML = `<span>🚶 عند D بدّل بين ${rightSelect1} و ${rightSelect2} — عند A بدّل بين ${leftSelect1} و ${leftSelect2}</span> <button class="delete-obj-btn" onclick="removeBlock(${idx})">✕</button>`;
                 } else if(block.type === 'jump_anim') {
                     div.style.background = 'var(--scratch-purple)'; div.style.color = 'white';
                     const upSelect = createFrameIndexSelect(obj, idx, 'jumpUpFrameIdx', block.jumpUpFrameIdx);
@@ -1675,6 +1680,7 @@
                 obj.followDelaySeconds = 0;
                 obj.posHistory = [];
                 obj._idleToggleIdx = 0;
+                obj._moveToggleIdx = 0;
                 obj.facing = 'right';
                 obj.element.style.transform = 'scaleX(1)';
                 const bubble = obj.element.querySelector('.typewriter-bubble');
@@ -1953,14 +1959,26 @@
                         } else if(obj.vy >= 0 && !isNaN(downIdx)) {
                             applied = applyAnimFrameByIndex(obj, downIdx);
                         }
-                    } else if(isMovingNow) {
-                        if(moveAnimBlock) {
-                            let rightIdx = parseInt(moveAnimBlock.moveRightFrameIdx);
-                            let leftIdx = parseInt(moveAnimBlock.moveLeftFrameIdx);
-                            if(movingRightNow && !isNaN(rightIdx)) {
-                                applied = applyAnimFrameByIndex(obj, rightIdx);
-                            } else if(movingLeftNow && !isNaN(leftIdx)) {
-                                applied = applyAnimFrameByIndex(obj, leftIdx);
+                    } else if(isMovingNow && moveAnimBlock) {
+                        let r1 = parseInt(moveAnimBlock.moveRightFrameIdx1);
+                        let r2 = parseInt(moveAnimBlock.moveRightFrameIdx2);
+                        let l1 = parseInt(moveAnimBlock.moveLeftFrameIdx1);
+                        let l2 = parseInt(moveAnimBlock.moveLeftFrameIdx2);
+                        if(updateFrames) {
+                            obj._moveToggleIdx = ((obj._moveToggleIdx || 0) + 1) % 2;
+                        }
+                        let toggle = obj._moveToggleIdx || 0;
+                        if(movingRightNow) {
+                            if(!isNaN(r1) && !isNaN(r2)) {
+                                applied = applyAnimFrameByIndex(obj, toggle === 0 ? r1 : r2);
+                            } else if(!isNaN(r1)) {
+                                applied = applyAnimFrameByIndex(obj, r1);
+                            }
+                        } else if(movingLeftNow) {
+                            if(!isNaN(l1) && !isNaN(l2)) {
+                                applied = applyAnimFrameByIndex(obj, toggle === 0 ? l1 : l2);
+                            } else if(!isNaN(l1)) {
+                                applied = applyAnimFrameByIndex(obj, l1);
                             }
                         }
                     } else if(idleBlock) {
@@ -2487,6 +2505,7 @@ function buildScene(sceneId) {
         followingOwnerId: null,
         followDelaySeconds: 0,
         _idleToggleIdx: 0,
+        _moveToggleIdx: 0,
         posHistory: []
       };
       world.appendChild(el);
@@ -2723,12 +2742,21 @@ function startLoop() {
         var downIdx = parseInt(jumpAnimBlock.jumpDownFrameIdx);
         if (ro.vy < 0 && !isNaN(upIdx)) { applied = applyAnimFrameByIndex(ro, upIdx); }
         else if (ro.vy >= 0 && !isNaN(downIdx)) { applied = applyAnimFrameByIndex(ro, downIdx); }
-      } else if (isMovingNow) {
-        if (moveAnimBlock) {
-          var rightIdx = parseInt(moveAnimBlock.moveRightFrameIdx);
-          var leftIdx = parseInt(moveAnimBlock.moveLeftFrameIdx);
-          if (movingRightNow && !isNaN(rightIdx)) { applied = applyAnimFrameByIndex(ro, rightIdx); }
-          else if (movingLeftNow && !isNaN(leftIdx)) { applied = applyAnimFrameByIndex(ro, leftIdx); }
+      } else if (isMovingNow && moveAnimBlock) {
+        var r1 = parseInt(moveAnimBlock.moveRightFrameIdx1);
+        var r2 = parseInt(moveAnimBlock.moveRightFrameIdx2);
+        var l1 = parseInt(moveAnimBlock.moveLeftFrameIdx1);
+        var l2 = parseInt(moveAnimBlock.moveLeftFrameIdx2);
+        if (updateFrames) {
+          ro._moveToggleIdx = ((ro._moveToggleIdx || 0) + 1) % 2;
+        }
+        var toggleM = ro._moveToggleIdx || 0;
+        if (movingRightNow) {
+          if (!isNaN(r1) && !isNaN(r2)) { applied = applyAnimFrameByIndex(ro, toggleM === 0 ? r1 : r2); }
+          else if (!isNaN(r1)) { applied = applyAnimFrameByIndex(ro, r1); }
+        } else if (movingLeftNow) {
+          if (!isNaN(l1) && !isNaN(l2)) { applied = applyAnimFrameByIndex(ro, toggleM === 0 ? l1 : l2); }
+          else if (!isNaN(l1)) { applied = applyAnimFrameByIndex(ro, l1); }
         }
       } else if (idleBlock) {
         var idx1v = parseInt(idleBlock.idleFrameIdx1);
